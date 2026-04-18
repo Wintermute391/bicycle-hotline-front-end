@@ -1,11 +1,9 @@
 import { io } from "socket.io-client";
 import { removeCustomer, removeJob, setJobs, upsertCustomer, upsertJob } from "./state.js";
 
-const RAILWAY_URL = "https://bicycle-hotline-back-end-production.up.railway.app";
-
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
-  (location.hostname === "localhost" ? "" : RAILWAY_URL);
+  "https://bicycle-hotline-back-end-production.up.railway.app";
 
 export const socket = io(SOCKET_URL, {
   path: "/socket.io/",
