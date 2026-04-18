@@ -1,5 +1,8 @@
 import { io } from "socket.io-client";
-import { removeCustomer, removeJob, setJobs, upsertCustomer, upsertJob } from "./state.js";
+import {
+  removeCustomer, removeBike, removeJob,
+  setJobs, upsertCustomer, upsertBike, upsertJob,
+} from "./state.js";
 
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
@@ -14,15 +17,9 @@ export const socket = io(SOCKET_URL, {
   timeout: 10000,
 });
 
-socket.on("connect", () =>
-  console.log("[socket] connected", { id: socket.id })
-);
-socket.on("disconnect", (reason) =>
-  console.warn("[socket] disconnected", { reason })
-);
-socket.on("connect_error", (err) =>
-  console.error("[socket] connect_error", err.message)
-);
+socket.on("connect", () => console.log("[socket] connected", { id: socket.id }));
+socket.on("disconnect", (reason) => console.warn("[socket] disconnected", { reason }));
+socket.on("connect_error", (err) => console.error("[socket] connect_error", err.message));
 
 function createCorrelationId() {
   return window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -73,28 +70,11 @@ export function emitSocketRequest(eventName, payload = {}, { timeoutMs = 8000 } 
 }
 
 export function bindBroadcasts(onUpdate) {
-  socket.on("crm:customerChanged", ({ customer }) => {
-    upsertCustomer(customer);
-    onUpdate();
-  });
-
-  socket.on("crm:customerRemoved", ({ customerId }) => {
-    removeCustomer(customerId);
-    onUpdate();
-  });
-
-  socket.on("crm:jobChanged", ({ job }) => {
-    upsertJob(job);
-    onUpdate();
-  });
-
-  socket.on("crm:jobRemoved", ({ jobId }) => {
-    removeJob(jobId);
-    onUpdate();
-  });
-
-  socket.on("crm:queueChanged", ({ jobs }) => {
-    setJobs(jobs);
-    onUpdate();
-  });
+  socket.on("crm:customerChanged", ({ customer }) => { upsertCustomer(customer); onUpdate(); });
+  socket.on("crm:customerRemoved", ({ customerId }) => { removeCustomer(customerId); onUpdate(); });
+  socket.on("crm:bikeChanged", ({ bike }) => { upsertBike(bike); onUpdate(); });
+  socket.on("crm:bikeRemoved", ({ bikeId }) => { removeBike(bikeId); onUpdate(); });
+  socket.on("crm:jobChanged", ({ job }) => { upsertJob(job); onUpdate(); });
+  socket.on("crm:jobRemoved", ({ jobId }) => { removeJob(jobId); onUpdate(); });
+  socket.on("crm:queueChanged", ({ jobs }) => { setJobs(jobs); onUpdate(); });
 }

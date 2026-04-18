@@ -6,7 +6,6 @@ const overlay = () => document.getElementById("dialog-overlay");
 
 function closeDialog() {
   DATA.activeDialog = null;
-  DATA.dialogPayload = null;
   overlay().innerHTML = "";
   overlay().classList.remove("active");
 }
@@ -15,27 +14,16 @@ function openDialog(html) {
   overlay().innerHTML = html;
   overlay().classList.add("active");
   overlay().querySelector(".dialog__close")?.addEventListener("click", closeDialog);
-  overlay().addEventListener("click", (e) => {
-    if (e.target === overlay()) closeDialog();
-  });
+  overlay().addEventListener("click", (e) => { if (e.target === overlay()) closeDialog(); });
 }
 
 // ── Status Dialog ─────────────────────────────────────────────────────────────
 
 export function openStatusDialog(job, onDone) {
-  DATA.activeDialog = "status";
-  DATA.dialogPayload = job;
-
-  const statusButtons = ALL_STATUSES.map(
-    (s) => `
-    <button
-      type="button"
-      class="status-btn ${s === job.status ? "status-btn--active" : ""}"
-      data-status="${escapeHtml(s)}"
-    >
+  const statusButtons = ALL_STATUSES.map((s) => `
+    <button type="button" class="status-btn ${s === job.status ? "status-btn--active" : ""}" data-status="${escapeHtml(s)}">
       ${escapeHtml(STATUS_LABELS[s])}
-    </button>`
-  ).join("");
+    </button>`).join("");
 
   openDialog(`
     <div class="dialog">
@@ -53,11 +41,12 @@ export function openStatusDialog(job, onDone) {
   overlay().querySelectorAll(".status-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const status = btn.dataset.status;
-      if (status === job.status) { closeDialog(); return; }
-      try {
-        await emitSocketRequest("crm:job:status", { jobId: job._id, status });
-      } catch (err) {
-        console.error("[dialog] status update failed", err.message);
+      if (status !== job.status) {
+        try {
+          await emitSocketRequest("crm:job:status", { jobId: job._id, status });
+        } catch (err) {
+          console.error("[dialog] status update failed", err.message);
+        }
       }
       closeDialog();
       onDone?.();
@@ -68,29 +57,20 @@ export function openStatusDialog(job, onDone) {
 // ── Job Form Dialog ───────────────────────────────────────────────────────────
 
 export function openJobForm(job = null, onDone) {
-  DATA.activeDialog = "job-form";
-  DATA.dialogPayload = job;
-
   const isEdit = Boolean(job);
-  const customers = DATA.customers;
-  const customerOptions = customers
-    .map(
-      (c) => `<option value="${escapeHtml(c._id)}" ${job?.customerId === c._id ? "selected" : ""}>
-        ${escapeHtml(c.name)}
-      </option>`
-    )
-    .join("");
 
-  const expenses = (job?.expenses || [])
-    .map(
-      (e, i) => `
-    <div class="expense-row" data-index="${i}">
-      <input type="text" class="expense-desc" placeholder="Description" value="${escapeHtml(e.description)}" />
-      <input type="number" class="expense-price" placeholder="Price" value="${escapeHtml(String(e.price))}" min="0" step="0.01" />
-      <button type="button" class="expense-remove">✕</button>
-    </div>`
-    )
-    .join("");
+  const customerOptions = DATA.customers.map((c) =>
+    `<option value="${escapeHtml(c._id)}" ${job?.customerId === c._id ? "selected" : ""}>${escapeHtml(c.name)}</option>`
+  ).join("");
+
+  const bikeOptions = `<option value="">— No bike —</option>` +
+    DATA.bikes.map((b) => {
+      const owner = b.customerId ? DATA.customers.find((c) => c._id === b.customerId) : null;
+      const label = [b.make, b.model].filter(Boolean).join(" ") + (owner ? ` (${owner.name})` : "");
+      return `<option value="${escapeHtml(b._id)}" ${job?.bikeId === b._id ? "selected" : ""}>${escapeHtml(label)}</option>`;
+    }).join("");
+
+  const expenses = (job?.expenses || []).map((e, i) => expenseRow(e, i)).join("");
 
   openDialog(`
     <div class="dialog dialog--wide">
@@ -102,6 +82,9 @@ export function openJobForm(job = null, onDone) {
         <form id="job-form">
           <label>Customer
             <select name="customerId" required>${customerOptions}</select>
+          </label>
+          <label>Bike
+            <select name="bikeId">${bikeOptions}</select>
           </label>
           <label>Description
             <textarea name="description" rows="2">${escapeHtml(job?.description || "")}</textarea>
@@ -115,7 +98,7 @@ export function openJobForm(job = null, onDone) {
           <div class="expenses-section">
             <div class="expenses-header">
               <span>Expenses</span>
-              <button type="button" id="add-expense">+ Add</button>
+              <button type="button" id="add-expense" class="btn">+ Add</button>
             </div>
             <div id="expense-list">${expenses}</div>
           </div>
@@ -129,45 +112,26 @@ export function openJobForm(job = null, onDone) {
 
   overlay().querySelector("#add-expense").addEventListener("click", () => {
     const list = overlay().querySelector("#expense-list");
-    const i = list.querySelectorAll(".expense-row").length;
-    const row = document.createElement("div");
-    row.className = "expense-row";
-    row.dataset.index = i;
-    row.innerHTML = `
-      <input type="text" class="expense-desc" placeholder="Description" />
-      <input type="number" class="expense-price" placeholder="Price" value="0" min="0" step="0.01" />
-      <button type="button" class="expense-remove">✕</button>
-    `;
-    list.appendChild(row);
-    bindRemoveExpense(row);
+    const div = document.createElement("div");
+    div.innerHTML = expenseRow({ id: "", description: "", price: 0 }, list.children.length);
+    list.appendChild(div.firstElementChild);
+    bindExpenseRemove(list.lastElementChild);
   });
 
-  overlay().querySelectorAll(".expense-remove").forEach(bindRemoveExpense);
-
-  function bindRemoveExpense(btn) {
-    (btn.classList.contains("expense-remove") ? btn : btn.querySelector(".expense-remove"))
-      ?.addEventListener("click", function () {
-        this.closest(".expense-row").remove();
-      });
-  }
-  overlay().querySelectorAll(".expense-remove").forEach((btn) => {
-    btn.addEventListener("click", function () {
-      this.closest(".expense-row").remove();
-    });
-  });
+  overlay().querySelectorAll(".expense-remove").forEach(bindExpenseRemove);
 
   overlay().querySelector("#job-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.target;
-    const expenseRows = [...overlay().querySelectorAll(".expense-row")];
-    const expenses = expenseRows.map((row) => ({
-      id: window.crypto.randomUUID(),
+    const expenses = [...overlay().querySelectorAll(".expense-row")].map((row) => ({
+      id: row.dataset.expenseId || window.crypto.randomUUID(),
       description: row.querySelector(".expense-desc").value.trim(),
       price: parseFloat(row.querySelector(".expense-price").value) || 0,
     }));
 
     const payload = {
       customerId: form.customerId.value,
+      bikeId: form.bikeId.value || null,
       description: form.description.value.trim(),
       startDate: form.startDate.value || undefined,
       expectedDate: form.expectedDate.value || undefined,
@@ -188,12 +152,87 @@ export function openJobForm(job = null, onDone) {
   });
 }
 
+function expenseRow(e, i) {
+  return `
+    <div class="expense-row" data-expense-id="${escapeHtml(e.id || "")}">
+      <input type="text" class="expense-desc" placeholder="Description" value="${escapeHtml(e.description || "")}" />
+      <input type="number" class="expense-price" placeholder="Price" value="${escapeHtml(String(e.price ?? 0))}" min="0" step="0.01" />
+      <button type="button" class="expense-remove">✕</button>
+    </div>`;
+}
+
+function bindExpenseRemove(row) {
+  row.querySelector(".expense-remove")?.addEventListener("click", () => row.remove());
+}
+
+// ── Bike Form Dialog ──────────────────────────────────────────────────────────
+
+export function openBikeForm(bike = null, onDone) {
+  const isEdit = Boolean(bike);
+
+  const customerOptions = `<option value="">— No customer —</option>` +
+    DATA.customers.map((c) =>
+      `<option value="${escapeHtml(c._id)}" ${bike?.customerId === c._id ? "selected" : ""}>${escapeHtml(c.name)}</option>`
+    ).join("");
+
+  openDialog(`
+    <div class="dialog">
+      <div class="dialog__header">
+        <span>${isEdit ? "Edit Bike" : "New Bike"}</span>
+        <button type="button" class="dialog__close">✕</button>
+      </div>
+      <div class="dialog__body">
+        <form id="bike-form">
+          <label>Customer
+            <select name="customerId">${customerOptions}</select>
+          </label>
+          <label>Make
+            <input type="text" name="make" value="${escapeHtml(bike?.make || "")}" placeholder="Trek, Specialized…" />
+          </label>
+          <label>Model
+            <input type="text" name="model" value="${escapeHtml(bike?.model || "")}" placeholder="FX3, Allez…" />
+          </label>
+          <label>Color
+            <input type="text" name="color" value="${escapeHtml(bike?.color || "")}" placeholder="Matte black…" />
+          </label>
+          <label>Notes
+            <textarea name="description" rows="3" placeholder="Any identifying details…">${escapeHtml(bike?.description || "")}</textarea>
+          </label>
+          <div class="dialog__actions">
+            <button type="submit" class="btn btn--primary">${isEdit ? "Save" : "Create"}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `);
+
+  overlay().querySelector("#bike-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const payload = {
+      customerId: form.customerId.value || null,
+      make: form.make.value.trim(),
+      model: form.model.value.trim(),
+      color: form.color.value.trim(),
+      description: form.description.value.trim(),
+    };
+    try {
+      if (isEdit) {
+        await emitSocketRequest("crm:bike:update", { bikeId: bike._id, ...payload });
+      } else {
+        await emitSocketRequest("crm:bike:create", payload);
+      }
+    } catch (err) {
+      console.error("[dialog] bike save failed", err.message);
+    }
+    closeDialog();
+    onDone?.();
+  });
+}
+
 // ── Customer Form Dialog ──────────────────────────────────────────────────────
 
 export function openCustomerForm(customer = null, onDone) {
-  DATA.activeDialog = "customer-form";
-  DATA.dialogPayload = customer;
-
   const isEdit = Boolean(customer);
 
   openDialog(`
