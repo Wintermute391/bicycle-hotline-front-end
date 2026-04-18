@@ -47,9 +47,28 @@ export function renderPage() {
     btn.disabled = true;
     btn.textContent = "⏳";
     try {
-      const res = await emitSocketRequest("crm:backup:create");
-      const { filename, counts } = res.data;
-      alert(`Backup saved: ${filename}\n${counts.customers} customers · ${counts.bikes} bikes · ${counts.jobs} jobs`);
+      const [customersRes, bikesRes, jobsRes] = await Promise.all([
+        emitSocketRequest("crm:customer:list"),
+        emitSocketRequest("crm:bike:list"),
+        emitSocketRequest("crm:job:list", { sort: "queue" }),
+      ]);
+
+      const payload = {
+        createdAt: new Date().toISOString(),
+        customers: customersRes.data.customers,
+        bikes: bikesRes.data.bikes,
+        jobs: jobsRes.data.jobs,
+      };
+
+      const timestamp = new Date().toISOString().replace(/:/g, "-").replace(/\..+/, "");
+      const filename = `bicycle-hotline-${timestamp}.json`;
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (err) {
       alert(`Backup failed: ${err.message}`);
     } finally {
