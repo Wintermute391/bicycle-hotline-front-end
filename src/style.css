@@ -1,0 +1,155 @@
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+.page-shell { display: flex; flex-direction: column; min-height: 100vh; }
+
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px;
+  background: #18181b; color: #fff;
+}
+.top-bar__title { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; }
+.top-bar__actions { display: flex; gap: 8px; }
+
+.sort-controls {
+  display: flex; gap: 4px; padding: 10px 20px;
+  background: #fff; border-bottom: 1px solid #e4e4e7;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 16px;
+  padding: 16px 20px;
+  flex: 1;
+}
+
+@media (max-width: 800px) {
+  .content { grid-template-columns: 1fr; }
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.btn {
+  padding: 6px 14px; border: 1px solid #d4d4d8; border-radius: 6px;
+  background: #fff; cursor: pointer; font-size: 13px;
+}
+.btn:hover { background: #f4f4f5; }
+.btn--primary { background: #18181b; color: #fff; border-color: #18181b; }
+.btn--primary:hover { background: #3f3f46; }
+
+.sort-btn {
+  padding: 5px 12px; border: 1px solid #d4d4d8; border-radius: 5px;
+  background: #fff; cursor: pointer; font-size: 13px;
+}
+.sort-btn:hover { background: #f4f4f5; }
+.sort-btn--active { background: #18181b; color: #fff; border-color: #18181b; }
+
+.icon-btn { background: none; border: none; cursor: pointer; padding: 2px 4px; font-size: 14px; }
+.icon-btn:hover { opacity: 0.7; }
+
+.arrow-btn {
+  display: block; background: none; border: 1px solid #d4d4d8;
+  border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 11px;
+  margin-bottom: 2px;
+}
+.arrow-btn:hover:not(:disabled) { background: #e4e4e7; }
+.arrow-btn:disabled { opacity: 0.3; cursor: default; }
+
+/* ── Job Table ────────────────────────────────────────────────────────────── */
+.jobs-section { background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e4e4e7; }
+
+.job-table { width: 100%; border-collapse: collapse; }
+.job-table th, .job-table td {
+  padding: 10px 12px; text-align: left; border-bottom: 1px solid #f4f4f5;
+}
+.job-table th { font-weight: 600; font-size: 12px; color: #71717a; background: #fafafa; }
+.job-table tr:hover td { background: #fafafa; }
+.arrow-cell { width: 48px; }
+
+/* ── Status Badge ─────────────────────────────────────────────────────────── */
+.status-badge {
+  padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: none;
+}
+.status-badge--in_queue        { background: #dbeafe; color: #1d4ed8; }
+.status-badge--waiting_for_parts { background: #fef3c7; color: #92400e; }
+.status-badge--in_progress     { background: #d1fae5; color: #065f46; }
+.status-badge--completed       { background: #e0e7ff; color: #3730a3; }
+.status-badge--picked_up       { background: #f4f4f5; color: #52525b; }
+
+/* ── Customer List ────────────────────────────────────────────────────────── */
+.customers-section {
+  background: #fff; border-radius: 8px; padding: 16px;
+  border: 1px solid #e4e4e7; align-self: start;
+}
+.customers-section h2 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+
+.customer-list { list-style: none; }
+.customer-item {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 0; border-bottom: 1px solid #f4f4f5;
+  position: relative;
+}
+.customer-item:last-child { border-bottom: none; }
+.customer-name { font-weight: 500; }
+.customer-contact { font-size: 12px; color: #71717a; }
+.customer-actions { position: absolute; right: 0; top: 8px; display: flex; gap: 4px; }
+
+/* ── Dialog ───────────────────────────────────────────────────────────────── */
+#dialog-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4); z-index: 100;
+  align-items: center; justify-content: center;
+}
+#dialog-overlay.active { display: flex; }
+
+.dialog {
+  background: #fff; border-radius: 10px; width: 100%; max-width: 420px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18); overflow: hidden;
+}
+.dialog--wide { max-width: 600px; }
+
+.dialog__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid #e4e4e7; font-weight: 600;
+}
+.dialog__close { background: none; border: none; cursor: pointer; font-size: 16px; }
+
+.dialog__body { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.dialog__body label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 500; }
+.dialog__body input,
+.dialog__body select,
+.dialog__body textarea {
+  padding: 7px 10px; border: 1px solid #d4d4d8; border-radius: 6px; font-size: 14px;
+}
+.dialog__actions { display: flex; justify-content: flex-end; padding-top: 8px; }
+
+.dialog__job-desc { font-size: 13px; color: #52525b; }
+
+/* Status grid */
+.status-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.status-btn {
+  padding: 7px 14px; border: 1px solid #d4d4d8; border-radius: 20px;
+  cursor: pointer; background: #fff; font-size: 13px;
+}
+.status-btn:hover { background: #f4f4f5; }
+.status-btn--active { background: #18181b; color: #fff; border-color: #18181b; }
+
+/* Expenses */
+.expenses-section { display: flex; flex-direction: column; gap: 8px; }
+.expenses-header { display: flex; align-items: center; justify-content: space-between; font-weight: 500; font-size: 13px; }
+.expense-row { display: grid; grid-template-columns: 1fr 100px 28px; gap: 6px; align-items: center; }
+.expense-row input { padding: 6px 8px; border: 1px solid #d4d4d8; border-radius: 5px; font-size: 13px; }
+.expense-remove { background: none; border: none; cursor: pointer; color: #ef4444; font-size: 14px; }
+
+/* ── Misc ─────────────────────────────────────────────────────────────────── */
+.empty-state { padding: 24px; text-align: center; color: #a1a1aa; font-size: 13px; }
+.error-banner { margin: 10px 20px; padding: 10px 14px; background: #fef2f2; color: #dc2626; border-radius: 6px; }
