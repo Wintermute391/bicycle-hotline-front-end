@@ -7,6 +7,7 @@ export default defineConfig({
         target: "http://localhost:3001",
         ws: true,
         changeOrigin: true,
+        rewriteWsOrigin: true,
       },
       "/health": {
         target: "http://localhost:3001",

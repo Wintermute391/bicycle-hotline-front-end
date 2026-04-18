@@ -9,7 +9,7 @@ const SOCKET_URL =
 
 export const socket = io(SOCKET_URL, {
   path: "/socket.io/",
-  transports: ["websocket", "polling"],
+  transports: ["polling", "websocket"],
   reconnection: true,
   reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,
