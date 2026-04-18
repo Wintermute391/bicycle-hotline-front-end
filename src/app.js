@@ -1,6 +1,6 @@
 import { DATA, setMode } from "./state.js";
 import { escapeHtml } from "./utils.js";
-import { emitSocketRequest } from "./socket.js";
+import { runBackup } from "./backup.js";
 import { renderJobsMode } from "./modes/jobs.js";
 import { renderCustomersMode } from "./modes/customers.js";
 import { renderBikesMode } from "./modes/bikes.js";
@@ -47,28 +47,7 @@ export function renderPage() {
     btn.disabled = true;
     btn.textContent = "⏳";
     try {
-      const [customersRes, bikesRes, jobsRes] = await Promise.all([
-        emitSocketRequest("crm:customer:list"),
-        emitSocketRequest("crm:bike:list"),
-        emitSocketRequest("crm:job:list", { sort: "queue" }),
-      ]);
-
-      const payload = {
-        createdAt: new Date().toISOString(),
-        customers: customersRes.data.customers,
-        bikes: bikesRes.data.bikes,
-        jobs: jobsRes.data.jobs,
-      };
-
-      const timestamp = new Date().toISOString().replace(/:/g, "-").replace(/\..+/, "");
-      const filename = `bicycle-hotline-${timestamp}.json`;
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      await runBackup();
     } catch (err) {
       alert(`Backup failed: ${err.message}`);
     } finally {
